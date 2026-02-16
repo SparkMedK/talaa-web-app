@@ -5,13 +5,28 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 export const createTeams = async (req: AuthRequest, res: Response) => {
     try {
         const adminId = req.user._id;
-        const { names } = req.body; // Array of strings
-        if (!names || !Array.isArray(names)) {
-            res.status(400).json({ message: 'Names array is required' });
+        const { name, names } = req.body;
+        // Support both single name and array of names
+        let teamNames: string[];
+        if (name && typeof name === 'string') {
+            // Single team creation
+            teamNames = [name];
+        } else if (names && Array.isArray(names)) {
+            // Multiple teams creation
+            teamNames = names;
+        } else {
+            res.status(400).json({ message: 'Either "name" (string) or "names" (array) is required' });
             return;
         }
-        const result = await teamService.createTeams(req.params.gameId as string, adminId.toString(), names);
-        res.status(201).json(result);
+
+        const result = await teamService.createTeams(req.params.gameId as string, adminId.toString(), teamNames);
+
+        // If single team was created, return just that team instead of array
+        if (name && typeof name === 'string') {
+            res.status(201).json(result[0]);
+        } else {
+            res.status(201).json(result);
+        }
     } catch (error) {
         res.status(400).json({ message: (error as Error).message });
     }
