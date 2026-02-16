@@ -1,6 +1,7 @@
 import Game, { IGame } from '../models/Game.model';
 import User, { IUser } from '../models/User.model';
 import Team from '../models/Team.model';
+import TeamPlayer from '../models/TeamPlayer.model';
 import Round from '../models/Round.model';
 import Turn from '../models/Turn.model';
 
@@ -65,10 +66,15 @@ export const getGameState = async (gameIdOrCode: string) => {
     const roundIds = rounds.map(r => r._id);
     const turns = await Turn.find({ roundId: { $in: roundIds } });
 
+    // Fetch team players to show which players are assigned to which teams
+    const teamIds = teams.map(t => t._id);
+    const teamPlayers = await TeamPlayer.find({ teamId: { $in: teamIds } });
+
     return {
         ...game.toObject(),
         users,
         teams,
+        teamPlayers,
         rounds,
         turns
     };

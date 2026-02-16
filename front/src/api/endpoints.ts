@@ -34,6 +34,10 @@ export const assignPlayerToTeam = async (teamId: string, userId: string) => {
     return apiClient.post(`/teams/${teamId}/assign`, { userId });
 };
 
+export const removePlayerFromTeam = async (teamId: string, userId: string) => {
+    return apiClient.post(`/teams/${teamId}/remove`, { userId });
+};
+
 export const startGame = async (gameId: string) => {
     return apiClient.post(`/games/${gameId}/start`);
 };

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
-import { createTeam, assignPlayerToTeam, startGame } from '../api/endpoints';
+import { createTeam, assignPlayerToTeam, removePlayerFromTeam, startGame } from '../api/endpoints';
 import { UserRole, GameStatus } from '../types';
-import { Users, Crown, Play, Plus } from 'lucide-react';
+import { Users, Crown, Play, Plus, User, X } from 'lucide-react';
 
 export const Lobby: React.FC = () => {
     const { gameId } = useParams<{ gameId: string }>();
@@ -28,7 +28,8 @@ export const Lobby: React.FC = () => {
 
     if (!gameState) return <div className="text-white text-center mt-20">Loading Lobby...</div>;
 
-    const isAdmin = gameState.users?.find(u => u._id === userId)?.role === UserRole.ADMIN;
+    const currentUser = gameState.users?.find(u => u._id === userId);
+    const isAdmin = currentUser?.role === UserRole.ADMIN;
 
 
     // Accessing teamPlayers from gameState (assuming it exists in response)
@@ -43,6 +44,8 @@ export const Lobby: React.FC = () => {
         try {
             await createTeam(gameId, newTeamName);
             setNewTeamName('');
+            // Immediately refresh game state to show the new team
+            await fetchGame(gameId);
         } catch (err) {
             console.error(err);
         }
@@ -51,6 +54,21 @@ export const Lobby: React.FC = () => {
     const handleAssign = async (teamId: string, userId: string) => {
         try {
             await assignPlayerToTeam(teamId, userId);
+            // Immediately refresh game state to show the updated team assignment
+            if (gameId) {
+                await fetchGame(gameId);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleRemove = async (teamId: string, userId: string) => {
+        try {
+            await removePlayerFromTeam(teamId, userId);
+            if (gameId) {
+                await fetchGame(gameId);
+            }
         } catch (err) {
             console.error(err);
         }
@@ -78,6 +96,13 @@ export const Lobby: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
+                    {currentUser && (
+                        <div className="bg-gray-800/50 px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-700">
+                            <User size={18} className="text-blue-400" />
+                            <span className="text-sm text-gray-300">Playing as:</span>
+                            <span className="font-bold text-white">{currentUser.nickname}</span>
+                        </div>
+                    )}
                     <div className="bg-gray-800 px-4 py-2 rounded-lg flex items-center gap-2">
                         <Users size={18} className="text-gray-400" />
                         <span>{gameState.users?.length} / {gameState.maxPlayers} Players</span>
@@ -165,10 +190,33 @@ export const Lobby: React.FC = () => {
                                     </h3>
                                     <div className="space-y-2">
                                         {teamMembers.map((member: any) => (
-                                            <div key={member._id} className="flex items-center gap-2 text-sm text-gray-300 bg-gray-900/50 p-2 rounded">
-                                                <div className={`w-2 h-2 rounded-full ${member.isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                                                {member.nickname}
-                                                {member.role === UserRole.ADMIN && <Crown size={12} className="text-yellow-500" />}
+                                            <div key={member._id} className="flex items-center justify-between gap-2 text-sm text-gray-300 bg-gray-900/50 p-2 rounded">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-2 h-2 rounded-full ${member.isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                                                    {member.nickname}
+                                                    {member.role === UserRole.ADMIN && <Crown size={12} className="text-yellow-500" />}
+                                                </div>
+                                                {isAdmin && (
+                                                    <div className="flex gap-1">
+                                                        {gameState.teams?.filter(t => t._id !== team._id).map(otherTeam => (
+                                                            <button
+                                                                key={otherTeam._id}
+                                                                onClick={() => handleAssign(otherTeam._id, member._id)}
+                                                                className="text-[10px] bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded text-gray-400"
+                                                                title={`Move to ${otherTeam.name}`}
+                                                            >
+                                                                {otherTeam.name.substring(0, 2).toUpperCase()}
+                                                            </button>
+                                                        ))}
+                                                        <button
+                                                            onClick={() => handleRemove(team._id, member._id)}
+                                                            className="p-1 hover:bg-gray-700 rounded text-red-400"
+                                                            title="Remove from team"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                         {teamMembers.length === 0 && (
