@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
-import { createRound, startTurn, submitGuess, restartGame } from '../api/endpoints';
+import { createRound, startTurn, submitGuess, restartGame, endTurn } from '../api/endpoints';
 import { UserRole, RoundStatus, TurnStatus } from '../types';
-import { Timer, Send, Play, RotateCcw } from 'lucide-react';
+import { Timer, Send, Play, RotateCcw, CheckCircle2, Square } from 'lucide-react';
+
 import clsx from 'clsx';
 
 export const Game: React.FC = () => {
@@ -40,7 +41,7 @@ export const Game: React.FC = () => {
             setTimeLeft(0);
         }
     }, [gameState]);
-
+    console.log(gameState);
 
     if (!gameState) return <div className="text-white text-center mt-20">Loading Game...</div>;
 
@@ -77,6 +78,21 @@ export const Game: React.FC = () => {
             setGuessInput('');
         } catch (e) { console.error(e); }
     };
+
+    const handleManualSolve = async (word: string) => {
+        if (!currentTurn) return;
+        try {
+            await submitGuess(currentTurn._id, word);
+        } catch (e) { console.error(e); }
+    };
+
+    const handleEndTurn = async () => {
+        if (!currentTurn) return;
+        try {
+            await endTurn(currentTurn._id);
+        } catch (e) { console.error(e); }
+    };
+
 
     const handleRestart = async () => {
         if (!gameId) return;
@@ -158,16 +174,38 @@ export const Game: React.FC = () => {
                             <h2 className="text-xl mb-4">
                                 {latestTurn ? "Turn Ended" : `Round ${currentRound.roundNumber} Started`}
                             </h2>
-                            {isAdmin ? (
-                                <button
-                                    onClick={handleStartTurn}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center gap-2 mx-auto"
-                                >
-                                    <Play size={24} /> Start Next Turn
-                                </button>
-                            ) : (
-                                <p className="text-gray-400">Waiting for turn to start...</p>
-                            )}
+                            {(() => {
+                                if (!gameState.teams || gameState.teams.length === 0) return null;
+                                // Find next team in rotation
+                                const sortedTeams = [...gameState.teams].sort((a, b) => (a.order || 0) - (b.order || 0));
+                                let nextTeamId = sortedTeams[0]._id;
+
+                                if (latestTurn) {
+                                    const lastTeamIndex = sortedTeams.findIndex(t => t._id === latestTurn.teamId);
+                                    const nextIndex = (lastTeamIndex + 1) % sortedTeams.length;
+                                    nextTeamId = sortedTeams[nextIndex]._id;
+                                }
+
+                                const isMyTurnToStart = myTeamId === nextTeamId;
+
+                                if (isMyTurnToStart) {
+                                    return (
+                                        <button
+                                            onClick={handleStartTurn}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center gap-2 mx-auto"
+                                        >
+                                            <Play size={24} /> Start Round
+                                        </button>
+                                    );
+                                }
+
+                                const nextTeamName = gameState.teams.find(t => t._id === nextTeamId)?.name;
+                                return (
+                                    <p className="text-gray-400">Waiting for {nextTeamName} to start...</p>
+                                );
+                            })()}
+
+
 
                             {latestTurn && latestTurn.words && (
                                 <div className="mt-8 text-sm text-gray-400">
@@ -188,78 +226,107 @@ export const Game: React.FC = () => {
                     {/* Case: Active Turn */}
                     {currentTurn && (
                         <div className="w-full text-center">
-                            {isMyTeamTurn ? (
-                                isDescriber ? (
-                                    <div className="space-y-6">
-                                        <div className="bg-yellow-500/20 text-yellow-300 px-4 py-2 rounded-full inline-block font-bold mb-4">YOU ARE DESCRIBING</div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {currentTurn.words.map((word, idx) => {
-                                                const isSolved = currentTurn.solvedWords.includes(word);
-                                                return (
-                                                    <div
-                                                        key={idx}
-                                                        className={clsx(
-                                                            "p-4 rounded-xl text-xl font-bold border-2 transition-all",
-                                                            isSolved
-                                                                ? "bg-green-600/20 border-green-500 text-green-400 scale-95 opacity-50"
-                                                                : "bg-white text-gray-900 border-white shadow-lg scale-100"
-                                                        )}
-                                                    >
-                                                        {word}
-                                                    </div>
-                                                )
-                                            })}
+                            {(() => {
+                                const describer = gameState.users?.find(u => u._id === currentTurn.describerId);
+                                const describerName = describer?.nickname || "Someone";
+
+                                return isMyTeamTurn ? (
+                                    isDescriber ? (
+                                        <div className="space-y-6">
+                                            <div className="bg-yellow-500/20 text-yellow-300 px-4 py-2 rounded-full inline-block font-bold mb-4">
+                                                YOU ({describerName}) ARE DESCRIBING
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {currentTurn.words.map((word, idx) => {
+                                                    const isSolved = currentTurn.solvedWords.includes(word);
+                                                    return (
+                                                        <button
+                                                            key={idx}
+                                                            disabled={isSolved || timeLeft === 0}
+                                                            onClick={() => handleManualSolve(word)}
+                                                            className={clsx(
+                                                                "p-4 rounded-xl text-xl font-bold border-2 transition-all flex items-center justify-between gap-2",
+                                                                isSolved
+                                                                    ? "bg-green-600/20 border-green-500 text-green-400 scale-95 opacity-50"
+                                                                    : "bg-white text-gray-900 border-white shadow-lg scale-100 hover:scale-105 active:scale-95"
+                                                            )}
+                                                        >
+                                                            <span>{word}</span>
+                                                            {isSolved && <CheckCircle2 className="text-green-500" />}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                            {timeLeft === 0 ? (
+                                                <button
+                                                    onClick={handleEndTurn}
+                                                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center gap-2 mx-auto mt-8 animate-bounce"
+                                                >
+                                                    <Square size={24} /> End Turn
+                                                </button>
+                                            ) : (
+                                                <p className="text-sm text-gray-400 mt-4">Describe these words to your team without saying them!</p>
+                                            )}
                                         </div>
-                                        <p className="text-sm text-gray-400 mt-4">Describe these words to your team without saying them!</p>
-                                    </div>
+                                    ) : (
+                                        <div className="space-y-6 max-w-md mx-auto">
+                                            <div className="flex flex-col items-center gap-2 mb-4">
+                                                <div className="bg-blue-500/20 text-blue-300 px-4 py-2 rounded-full inline-block font-bold">
+                                                    GUESS THE WORDS!
+                                                </div>
+                                                <div className="text-sm text-gray-400">
+                                                    <span className="font-bold text-blue-400">{describerName}</span> is describing...
+                                                </div>
+                                            </div>
+                                            <form onSubmit={handleGuess} className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={guessInput}
+                                                    onChange={(e) => setGuessInput(e.target.value)}
+                                                    placeholder="Type your guess here..."
+                                                    className="w-full bg-gray-700 border-2 border-blue-500 rounded-full py-4 px-6 pr-14 text-white placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:shadow-lg focus:shadow-blue-500/20 text-lg transition-all"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full transition-colors aspect-square flex items-center justify-center"
+                                                >
+                                                    <Send size={20} />
+                                                </button>
+                                            </form>
+                                            <div className="flex flex-wrap gap-2 justify-center mt-4">
+                                                {currentTurn.solvedWords.map((w, i) => (
+                                                    <span key={i} className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce">
+                                                        {w}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )
                                 ) : (
-                                    <div className="space-y-6 max-w-md mx-auto">
-                                        <div className="bg-blue-500/20 text-blue-300 px-4 py-2 rounded-full inline-block font-bold mb-4">GUESS THE WORDS!</div>
-                                        <form onSubmit={handleGuess} className="relative">
-                                            <input
-                                                type="text"
-                                                value={guessInput}
-                                                onChange={(e) => setGuessInput(e.target.value)}
-                                                placeholder="Type your guess here..."
-                                                className="w-full bg-gray-700 border-2 border-blue-500 rounded-full py-4 px-6 pr-14 text-white placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:shadow-lg focus:shadow-blue-500/20 text-lg transition-all"
-                                                autoFocus
-                                            />
-                                            <button
-                                                type="submit"
-                                                className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full transition-colors aspect-square flex items-center justify-center"
-                                            >
-                                                <Send size={20} />
-                                            </button>
-                                        </form>
-                                        <div className="flex flex-wrap gap-2 justify-center mt-4">
-                                            {currentTurn.solvedWords.map((w, i) => (
-                                                <span key={i} className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce">
-                                                    {w}
+                                    <div className="space-y-4">
+                                        <h2 className="text-2xl font-bold text-gray-300">
+                                            {gameState.teams?.find(t => t._id === currentTurn.teamId)?.name} is playing...
+                                        </h2>
+                                        <div className="text-lg text-blue-400 font-medium">
+                                            <span className="text-gray-400">Describer:</span> {describerName}
+                                        </div>
+                                        <div className="animate-spin text-gray-600 mx-auto w-fit">
+                                            <RotateCcw size={40} />
+                                        </div>
+                                        <div className="flex gap-2 justify-center mt-8">
+                                            {currentTurn.solvedWords.map((_, i) => (
+                                                <span key={i} className="bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-xs">
+                                                    Solved 1 word
                                                 </span>
                                             ))}
                                         </div>
                                     </div>
-                                )
-                            ) : (
-                                <div className="space-y-4">
-                                    <h2 className="text-2xl font-bold text-gray-300">
-                                        {gameState.teams?.find(t => t._id === currentTurn.teamId)?.name} is playing...
-                                    </h2>
-                                    <div className="animate-spin text-gray-600 mx-auto w-fit">
-                                        <RotateCcw size={40} />
-                                    </div>
-                                    <div className="flex gap-2 justify-center mt-8">
-                                        {/* Show live solved words to others too? Usually fun to see progress */}
-                                        {currentTurn.solvedWords.map((_, i) => (
-                                            <span key={i} className="bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-xs">
-                                                Solved 1 word
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                );
+                            })()}
                         </div>
                     )}
+
 
                 </div>
             </main>

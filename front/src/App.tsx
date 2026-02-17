@@ -4,12 +4,16 @@ import { Lobby } from './pages/Lobby';
 import { Game } from './pages/Game';
 import { useGameStore } from './store/useGameStore';
 
+import { GlobalHeader } from './components/GlobalHeader';
+
 function App() {
   useGameStore();
 
   return (
     <Router>
+      <GlobalHeader />
       <Routes>
+
         <Route path="/" element={<Welcome />} />
         <Route path="/lobby/:gameId" element={<Lobby />} />
         <Route path="/game/:gameId" element={<Game />} />

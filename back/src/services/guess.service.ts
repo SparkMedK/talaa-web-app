@@ -8,12 +8,9 @@ export const submitGuess = async (turnId: string, userId: string, input: string)
     if (turn.status !== 'ACTIVE') throw new Error('Turn is not active');
 
     // Check if user is the describer? Usually describer describes, teammates guess.
-    // Spec doesn't strictly say who guesses, but "Submit a guess for an active turn".
-    // Assuming any active player can guess? Or typically only teammates?
-    // Let's assume validation: Describer cannot guess.
-    if (turn.describerId.toString() === userId) {
-        throw new Error('Describer cannot submit guesses');
-    }
+    // Allow describer to submit if they use buttons to mark as correct.
+    // Removed restriction to allow describer to mark words as solved.
+
 
     // Validations logic
     const normalizedInput = input.trim().toLowerCase();

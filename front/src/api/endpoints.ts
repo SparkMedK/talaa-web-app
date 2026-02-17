@@ -54,3 +54,8 @@ export const startTurn = async (roundId: string) => {
 export const submitGuess = async (turnId: string, input: string) => {
     return apiClient.post(`/turns/${turnId}/guess`, { input });
 };
+
+export const endTurn = async (turnId: string) => {
+    return apiClient.post(`/turns/${turnId}/end`);
+};
+

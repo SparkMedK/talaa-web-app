@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
 import { createTeam, assignPlayerToTeam, removePlayerFromTeam, startGame } from '../api/endpoints';
 import { UserRole, GameStatus } from '../types';
-import { Users, Crown, Play, Plus, User, X } from 'lucide-react';
+import { Users, Crown, Play, Plus, X } from 'lucide-react';
 
 export const Lobby: React.FC = () => {
     const { gameId } = useParams<{ gameId: string }>();
@@ -96,13 +96,7 @@ export const Lobby: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    {currentUser && (
-                        <div className="bg-gray-800/50 px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-700">
-                            <User size={18} className="text-blue-400" />
-                            <span className="text-sm text-gray-300">Playing as:</span>
-                            <span className="font-bold text-white">{currentUser.nickname}</span>
-                        </div>
-                    )}
+
                     <div className="bg-gray-800 px-4 py-2 rounded-lg flex items-center gap-2">
                         <Users size={18} className="text-gray-400" />
                         <span>{gameState.users?.length} / {gameState.maxPlayers} Players</span>
@@ -119,6 +113,7 @@ export const Lobby: React.FC = () => {
             </header>
 
             <main className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+
                 {/* Unassigned Players */}
                 <div className="bg-gray-800 rounded-xl p-6 h-fit">
                     <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">

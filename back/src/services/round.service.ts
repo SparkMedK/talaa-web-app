@@ -51,6 +51,24 @@ export const startTurn = async (roundId: string, describerId: string) => {
     if (!team) throw new Error('Team not found');
     if (team.gameId.toString() !== round.gameId.toString()) throw new Error('User team not in this game');
 
+    // VALIDATION: Ensure it's this team's turn and this user is the next describer
+    // Find all teams in the game sorted by order
+    const teams = await Team.find({ gameId: round.gameId }).sort({ order: 1 });
+    const lastTurn = await Turn.findOne({ roundId }).sort({ startTime: -1 });
+
+    let nextTeamIndex = 0;
+    if (lastTurn) {
+        const lastTeamIndex = teams.findIndex(t => t._id.toString() === lastTurn.teamId.toString());
+        nextTeamIndex = (lastTeamIndex + 1) % teams.length;
+    }
+
+    if (teams[nextTeamIndex]._id.toString() !== team._id.toString()) {
+        throw new Error('It is not your team\'s turn');
+    }
+
+    // Usually, we'd also track whose turn it is specifically within the team if we want strict describer rotation.
+    // For now, let's just allow anyone on the correct team to start, as they will BECOME the describer.
+
     // Generate words
     const words = generateWords(5);
 
@@ -66,6 +84,7 @@ export const startTurn = async (roundId: string, describerId: string) => {
     await turn.save();
     return turn;
 };
+
 
 export const endTurn = async (turnId: string) => {
     const turn = await Turn.findById(turnId);
