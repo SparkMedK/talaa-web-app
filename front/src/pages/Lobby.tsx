@@ -4,6 +4,8 @@ import { useGameStore } from '../store/useGameStore';
 import { createTeam, assignPlayerToTeam, removePlayerFromTeam, startGame } from '../api/endpoints';
 import { UserRole, GameStatus } from '../types';
 import { Users, Crown, Play, Plus, X } from 'lucide-react';
+import clsx from 'clsx';
+
 
 export const Lobby: React.FC = () => {
     const { gameId } = useParams<{ gameId: string }>();
@@ -37,6 +39,14 @@ export const Lobby: React.FC = () => {
 
     const playersInTeams = new Set(allTeamPlayers.map((tp: any) => tp.userId));
     const trulyUnassigned = gameState.users?.filter(u => !playersInTeams.has(u._id)) || [];
+
+    // Validation: At least 2 teams, and each team must have at least 2 players
+    const canStartGame = (gameState.teams?.length || 0) >= 2 &&
+        gameState.teams?.every(team => {
+            const teamSize = allTeamPlayers.filter((tp: any) => tp.teamId === team._id).length;
+            return teamSize >= 2;
+        });
+
 
     const handleCreateTeam = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -102,13 +112,28 @@ export const Lobby: React.FC = () => {
                         <span>{gameState.users?.length} / {gameState.maxPlayers} Players</span>
                     </div>
                     {isAdmin && (
-                        <button
-                            onClick={handleStartGame}
-                            className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors"
-                        >
-                            <Play size={18} /> Start Game
-                        </button>
+                        <div className="flex flex-col items-end gap-1">
+                            <button
+                                onClick={handleStartGame}
+                                disabled={!canStartGame}
+                                className={clsx(
+                                    "px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all",
+                                    canStartGame
+                                        ? "bg-green-600 hover:bg-green-700 text-white cursor-pointer shadow-lg shadow-green-500/20"
+                                        : "bg-gray-700 text-gray-500 cursor-not-allowed grayscale opacity-60"
+                                )}
+                                title={!canStartGame ? "Need at least 2 teams with 2 players each" : "Start Game"}
+                            >
+                                <Play size={18} /> Start Game
+                            </button>
+                            {!canStartGame && (
+                                <span className="text-[10px] text-gray-500 italic">
+                                    Need 2+ teams & 2+ players per team
+                                </span>
+                            )}
+                        </div>
                     )}
+
                 </div>
             </header>
 
