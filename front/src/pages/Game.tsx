@@ -41,7 +41,6 @@ export const Game: React.FC = () => {
             setTimeLeft(0);
         }
     }, [gameState]);
-    console.log(gameState);
 
     if (!gameState) return <div className="text-white text-center mt-20">Loading Game...</div>;
 
