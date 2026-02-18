@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
 import { createRound, startTurn, submitGuess, restartGame, endTurn } from '../api/endpoints';
-import { UserRole, RoundStatus, TurnStatus } from '../types';
+import { UserRole, RoundStatus, TurnStatus, GameStatus } from '../types';
 import { Timer, Send, Play, RotateCcw, CheckCircle2, Square } from 'lucide-react';
 
 import clsx from 'clsx';
 
 export const Game: React.FC = () => {
     const { gameId } = useParams<{ gameId: string }>();
+    const navigate = useNavigate();
 
     const { gameState, userId, fetchGame } = useGameStore();
     const [guessInput, setGuessInput] = useState('');
@@ -21,6 +22,13 @@ export const Game: React.FC = () => {
         const interval = setInterval(() => fetchGame(gameId), 1000); // 1s polling for game loop
         return () => clearInterval(interval);
     }, [gameId, fetchGame]);
+
+    // Redirect to lobby if game is reset
+    useEffect(() => {
+        if (gameState?.status === GameStatus.LOBBY) {
+            navigate(`/lobby/${gameId}`);
+        }
+    }, [gameState?.status, gameId, navigate]);
 
     // Timer logic - derived from turn state
     useEffect(() => {
@@ -93,9 +101,9 @@ export const Game: React.FC = () => {
     };
 
 
-    const handleRestart = async () => {
+    const handleResetGame = async () => {
         if (!gameId) return;
-        if (confirm('Are you sure you want to restart the game? Scores will be reset.')) {
+        if (confirm('Are you sure you want to RESET the entire game? Teams and scores will be cleared.')) {
             try { await restartGame(gameId); } catch (e) { console.error(e); }
         }
     }
@@ -108,7 +116,7 @@ export const Game: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <h1 className="text-xl font-bold text-blue-400">Round {gameState.currentRound || 0}</h1>
                         {isAdmin && (
-                            <button onClick={handleRestart} className="p-2 bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20" title="Restart Game">
+                            <button onClick={handleResetGame} className="p-2 bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20" title="Reset Game (Admin Only)">
                                 <RotateCcw size={16} />
                             </button>
                         )}

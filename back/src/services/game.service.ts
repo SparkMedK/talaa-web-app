@@ -106,8 +106,11 @@ export const restartGame = async (gameId: string, userId: string) => {
     await Turn.deleteMany({ roundId: { $in: roundIds } });
     await Round.deleteMany({ gameId });
 
-    // Reset scores
-    await Team.updateMany({ gameId }, { score: 0 });
+    // Clear team players and teams
+    const teams = await Team.find({ gameId });
+    const teamIds = teams.map(t => t._id);
+    await TeamPlayer.deleteMany({ teamId: { $in: teamIds } });
+    await Team.deleteMany({ gameId });
 
     return game;
 };
