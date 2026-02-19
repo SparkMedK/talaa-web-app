@@ -64,7 +64,7 @@ export const getGameState = async (gameIdOrCode: string) => {
     const rounds = await Round.find({ gameId });
     // Fetch turns for all rounds
     const roundIds = rounds.map(r => r._id);
-    const turns = await Turn.find({ roundId: { $in: roundIds } });
+    const turns = await Turn.find({ gameId }).sort({ startTime: 1 });
 
     // Fetch team players to show which players are assigned to which teams
     const teamIds = teams.map(t => t._id);
@@ -103,7 +103,7 @@ export const restartGame = async (gameId: string, userId: string) => {
     // Delete rounds, turns
     const rounds = await Round.find({ gameId });
     const roundIds = rounds.map(r => r._id);
-    await Turn.deleteMany({ roundId: { $in: roundIds } });
+    await Turn.deleteMany({ gameId });
     await Round.deleteMany({ gameId });
 
     // Clear team players and teams

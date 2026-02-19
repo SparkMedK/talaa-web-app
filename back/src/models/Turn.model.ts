@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ITurn extends Document {
     roundId: mongoose.Types.ObjectId;
+    gameId: mongoose.Types.ObjectId;
     teamId: mongoose.Types.ObjectId;
     describerId: mongoose.Types.ObjectId;
     words: string[];
@@ -13,6 +14,7 @@ export interface ITurn extends Document {
 
 const TurnSchema: Schema = new Schema({
     roundId: { type: Schema.Types.ObjectId, ref: 'Round', required: true },
+    gameId: { type: Schema.Types.ObjectId, ref: 'Game', required: true },
     teamId: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
     describerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     words: { type: [String], default: [] },
@@ -23,5 +25,6 @@ const TurnSchema: Schema = new Schema({
 });
 
 TurnSchema.index({ roundId: 1 });
+TurnSchema.index({ gameId: 1, teamId: 1 });
 
 export default mongoose.model<ITurn>('Turn', TurnSchema);

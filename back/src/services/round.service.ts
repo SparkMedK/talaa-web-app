@@ -26,55 +26,60 @@ export const createRound = async (gameId: string, adminId: string) => {
     return round;
 };
 
-export const startTurn = async (roundId: string, describerId: string) => {
+export const startTurn = async (roundId: string, callerId: string) => {
     const round = await Round.findById(roundId);
     if (!round) throw new Error('Round not found');
 
-    // Logic to determine team? 
-    // Usually, the game logic decides whose turn it is. 
-    // For simplicity based on requirements, we might need more info or infer it.
-    // Let's assume the client sends the teamId or we infer it from the user.
-    // Wait, the API doesn't take teamId in body. 
-    // "POST /rounds/:roundId/turns/start"
-    // We need to find which team the describer belongs to.
+    // 1. Check for active turns in this round
+    const activeTurn = await Turn.findOne({ roundId, status: 'ACTIVE' });
+    if (activeTurn) throw new Error('A turn is already in progress');
 
-    // Find team for user in this game
-    // We need to look up TeamPlayer, but we don't have easy access here without importing models or helper.
-    // Let's rely on finding the TeamPlayer.
-    const TeamPlayer = (await import('../models/TeamPlayer.model')).default;
-    const teamPlayer = await TeamPlayer.findOne({ userId: describerId });
-
-    // We should also check if the team belongs to the game of the round.
-    if (!teamPlayer) throw new Error('User not assigned to a team');
-
-    const team = await Team.findById(teamPlayer.teamId);
-    if (!team) throw new Error('Team not found');
-    if (team.gameId.toString() !== round.gameId.toString()) throw new Error('User team not in this game');
-
-    // VALIDATION: Ensure it's this team's turn and this user is the next describer
-    // Find all teams in the game sorted by order
     const teams = await Team.find({ gameId: round.gameId }).sort({ order: 1 });
-    const lastTurn = await Turn.findOne({ roundId }).sort({ startTime: -1 });
+    if (teams.length === 0) throw new Error('No teams found for this game');
 
-    let nextTeamIndex = 0;
-    if (lastTurn) {
+    // 2. Identify whose team turn it is
+    const lastTurn = await Turn.findOne({ gameId: round.gameId }).sort({ startTime: -1, _id: -1 });
+
+    let nextTeam;
+    if (!lastTurn) {
+        nextTeam = teams[0];
+    } else {
         const lastTeamIndex = teams.findIndex(t => t._id.toString() === lastTurn.teamId.toString());
-        nextTeamIndex = (lastTeamIndex + 1) % teams.length;
+        const nextTeamIndex = (lastTeamIndex + 1) % teams.length;
+        nextTeam = teams[nextTeamIndex];
     }
 
-    if (teams[nextTeamIndex]._id.toString() !== team._id.toString()) {
-        throw new Error('It is not your team\'s turn');
+    // 3. Identify the player in that team whose turn it is to describe (Round-Robin)
+    const TeamPlayer = (await import('../models/TeamPlayer.model')).default;
+    const teamMembers = await TeamPlayer.find({ teamId: nextTeam._id }).sort({ _id: 1 });
+
+    if (teamMembers.length === 0) {
+        throw new Error(`Team ${nextTeam.name} has no players assigned`);
     }
 
-    // Usually, we'd also track whose turn it is specifically within the team if we want strict describer rotation.
-    // For now, let's just allow anyone on the correct team to start, as they will BECOME the describer.
+    // Ensure caller is from the correct team
+    const caller = await TeamPlayer.findOne({ userId: callerId });
+    if (!caller || caller.teamId.toString() !== nextTeam._id.toString()) {
+        throw new Error(`It is not your team's turn. It is ${nextTeam.name}'s turn.`);
+    }
+
+    // Calculate how many turns this team has COMPLETED in this game to determine rotation
+    const completedTurnsCount = await Turn.countDocuments({
+        gameId: round.gameId,
+        teamId: nextTeam._id,
+        status: 'COMPLETED'
+    });
+
+    const describerIndex = completedTurnsCount % teamMembers.length;
+    const describerId = teamMembers[describerIndex].userId;
 
     // Generate words
     const words = generateWords(5);
 
     const turn = new Turn({
         roundId,
-        teamId: team._id,
+        gameId: round.gameId,
+        teamId: nextTeam._id,
         describerId,
         words,
         startTime: new Date(),
