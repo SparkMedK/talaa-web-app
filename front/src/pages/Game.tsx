@@ -193,22 +193,40 @@ export const Game: React.FC = () => {
                                     nextTeamId = sortedTeams[nextIndex]._id;
                                 }
 
-                                const isMyTurnToStart = myTeamId === nextTeamId;
+                                // Find next describer for that team using the same logic as backend
+                                const teamMembers = (gameState as any).teamPlayers
+                                    ?.filter((tp: any) => tp.teamId === nextTeamId)
+                                    .sort((a: any, b: any) => a._id.localeCompare(b._id)) || [];
+
+                                const completedTurnsCount = gameState.turns?.filter(
+                                    t => t.teamId === nextTeamId && t.status === TurnStatus.COMPLETED
+                                ).length || 0;
+
+                                const describerIndex = teamMembers.length > 0 ? completedTurnsCount % teamMembers.length : 0;
+                                const nextDescriberId = teamMembers[describerIndex]?.userId;
+                                const nextDescriberNickname = gameState.users?.find(u => u._id === nextDescriberId)?.nickname || "the describer";
+
+                                const isMyTurnToStart = userId === nextDescriberId;
 
                                 if (isMyTurnToStart) {
                                     return (
-                                        <button
-                                            onClick={handleStartTurn}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center gap-2 mx-auto"
-                                        >
-                                            <Play size={24} /> Start Round
-                                        </button>
+                                        <div className="space-y-4">
+                                            <p className="text-yellow-400 font-bold animate-pulse">It's YOUR turn to describe!</p>
+                                            <button
+                                                onClick={handleStartTurn}
+                                                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center gap-2 mx-auto shadow-lg shadow-blue-500/30 transition-transform hover:scale-105 active:scale-95"
+                                            >
+                                                <Play size={24} /> Start Round
+                                            </button>
+                                        </div>
                                     );
                                 }
 
                                 const nextTeamName = gameState.teams.find(t => t._id === nextTeamId)?.name;
                                 return (
-                                    <p className="text-gray-400">Waiting for {nextTeamName} to start...</p>
+                                    <p className="text-gray-400">
+                                        Waiting for <span className="text-blue-400 font-bold">{nextDescriberNickname}</span> ({nextTeamName}) to start...
+                                    </p>
                                 );
                             })()}
 
