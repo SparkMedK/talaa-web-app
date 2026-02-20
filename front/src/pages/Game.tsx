@@ -109,81 +109,108 @@ export const Game: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-            {/* Top Bar: Scoreboard */}
-            <header className="bg-gray-800 border-b border-gray-700 p-4 shadow-md">
-                <div className="max-w-6xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-xl font-bold text-blue-400">Round {gameState.currentRound || 0}</h1>
+        <div className="min-h-screen bg-[#0f172a] text-white flex flex-col font-sans overflow-hidden">
+            {/* Ambient Background Glow */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+            </div>
+
+            {/* Top Bar: Scoreboard - Thinner and more elegant */}
+            <header className="relative z-10 bg-slate-900/50 backdrop-blur-md border-b border-white/5 p-3 sm:p-4">
+                <div className="max-w-6xl mx-auto flex justify-between items-center px-2">
+                    <div className="flex items-center gap-3">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] uppercase tracking-[0.2em] text-blue-400 font-black">Round</span>
+                            <h1 className="text-xl sm:text-2xl font-black italic tracking-tighter leading-none">{gameState.currentRound || 1}</h1>
+                        </div>
                         {isAdmin && (
-                            <button onClick={handleResetGame} className="p-2 bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20" title="Reset Game (Admin Only)">
+                            <button onClick={handleResetGame} className="p-2 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-all active:scale-95" title="Reset Game">
                                 <RotateCcw size={16} />
                             </button>
                         )}
                     </div>
 
-                    <div className="flex gap-4 overflow-x-auto">
+                    <div className="flex gap-2 sm:gap-4 items-center max-w-[60%] sm:max-w-none">
                         {gameState.teams?.map(team => (
                             <div
                                 key={team._id}
                                 className={clsx(
-                                    "px-4 py-2 rounded-lg border flex flex-col items-center min-w-[100px]",
-                                    currentTurn?.teamId === team._id ? "bg-blue-900/40 border-blue-500 shadow-blue-500/20 shadow-lg" : "bg-gray-700 border-gray-600"
+                                    "px-3 py-1.5 sm:px-5 sm:py-2 rounded-2xl border transition-all duration-500 flex flex-col items-center min-w-[70px] sm:min-w-[100px]",
+                                    currentTurn?.teamId === team._id
+                                        ? "bg-blue-500/20 border-blue-400/50 shadow-[0_0_20px_rgba(59,130,246,0.2)] scale-105"
+                                        : "bg-white/5 border-white/5 opacity-60"
                                 )}
                             >
-                                <span className="font-bold text-sm truncate max-w-[120px]">{team.name}</span>
-                                <span className="text-2xl font-mono">{team.score}</span>
+                                <span className="font-extrabold text-[9px] sm:text-[10px] uppercase tracking-widest truncate max-w-[60px] sm:max-w-[100px] mb-0.5">{team.name}</span>
+                                <span className="text-lg sm:text-2xl font-black font-mono leading-none">{team.score}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             </header>
 
-            {/* Main Game Area */}
-            <main className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col justify-center items-center gap-8">
+            {/* Main Content: Full Centered Layout */}
+            <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 sm:p-8 max-w-5xl mx-auto w-full">
 
-                {/* Timer */}
-                {currentTurn && (
-                    <div className="flex flex-col items-center animate-pulse">
+                {/* 1. Timer - Always Centered prominently */}
+                <div className="mb-4 sm:mb-8 flex flex-col items-center">
+                    <div className={clsx(
+                        "relative flex items-center justify-center",
+                        currentTurn ? "scale-100 opacity-100" : "scale-75 opacity-20 transition-all duration-700"
+                    )}>
+                        {/* Circular Progress (Simplified Visual) */}
                         <div className={clsx(
-                            "text-6xl font-mono font-bold flex items-center gap-2 transition-colors",
-                            timeLeft < 10 ? "text-red-500" : "text-white"
+                            "absolute inset-0 rounded-full border-4 opacity-20",
+                            timeLeft < 10 ? "border-red-500" : "border-blue-500"
+                        )} />
+
+                        <div className={clsx(
+                            "text-6xl sm:text-8xl font-black font-mono flex items-center gap-2 tabular-nums transition-colors duration-300",
+                            timeLeft < 10 ? "text-red-500 animate-pulse" : "text-white"
                         )}>
-                            <Timer size={48} />
-                            {timeLeft}s
+                            {timeLeft}
+                            <span className="text-xl sm:text-2xl text-white/40 font-sans tracking-tight ml-[-4px]">s</span>
                         </div>
                     </div>
-                )}
+                    {/* Active Team Label */}
+                    {currentTurn && (
+                        <div className="mt-2 text-xs sm:text-sm font-bold uppercase tracking-[0.3em] text-blue-400/80">
+                            {gameState.teams?.find(t => t._id === currentTurn.teamId)?.name} Team
+                        </div>
+                    )}
+                </div>
 
-                {/* Game State Messages */}
-                <div className="w-full max-w-2xl bg-gray-800 rounded-2xl p-8 shadow-2xl border border-gray-700 min-h-[300px] flex flex-col items-center justify-center">
+                {/* 2. Content Area - Roles and gameplay */}
+                <div className="w-full flex flex-col items-center gap-6 sm:gap-10">
 
-                    {/* Case: No Active Round */}
+                    {/* Case: No Active Round (Admin UI or Waiting) */}
                     {!currentRound && (gameState.currentRound === 0 || gameState.rounds?.every(r => r.status === RoundStatus.COMPLETED)) && (
-                        <div className="text-center">
-                            <h2 className="text-2xl mb-4">Round Ended or Not Started</h2>
+                        <div className="text-center animate-in fade-in zoom-in duration-500">
+                            <h2 className="text-3xl sm:text-5xl font-black mb-8 bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent italic">
+                                Ready for the next one?
+                            </h2>
                             {isAdmin ? (
                                 <button
                                     onClick={handleCreateRound}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center gap-2 mx-auto"
+                                    className="group relative bg-white text-black hover:bg-blue-400 hover:text-white px-10 py-5 rounded-2xl font-black text-xl flex items-center gap-3 mx-auto transition-all shadow-2xl hover:shadow-blue-500/40 active:scale-95"
                                 >
-                                    <Play size={24} /> Start New Round
+                                    <Play size={28} fill="currentColor" /> START NEW ROUND
                                 </button>
                             ) : (
-                                <p className="text-gray-400">Waiting for admin to start round...</p>
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                    <p className="text-lg text-white/40 font-medium tracking-wide">WAITING FOR ADMIN...</p>
+                                </div>
                             )}
                         </div>
                     )}
 
-                    {/* Case: Active Round, No Active Turn */}
+                    {/* Case: Waiting for someone to start the turn */}
                     {currentRound && !currentTurn && (
-                        <div className="text-center">
-                            <h2 className="text-xl mb-4">
-                                {latestTurn ? "Turn Ended" : `Round ${currentRound.roundNumber} Started`}
-                            </h2>
+                        <div className="w-full max-w-lg text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
                             {(() => {
                                 if (!gameState.teams || gameState.teams.length === 0) return null;
-                                // Find next team in rotation
                                 const sortedTeams = [...gameState.teams].sort((a, b) => (a.order || 0) - (b.order || 0));
                                 let nextTeamId = sortedTeams[0]._id;
 
@@ -193,7 +220,6 @@ export const Game: React.FC = () => {
                                     nextTeamId = sortedTeams[nextIndex]._id;
                                 }
 
-                                // Find next describer for that team using the same logic as backend
                                 const teamMembers = (gameState as any).teamPlayers
                                     ?.filter((tp: any) => tp.teamId === nextTeamId)
                                     .sort((a: any, b: any) => a._id.localeCompare(b._id)) || [];
@@ -205,161 +231,195 @@ export const Game: React.FC = () => {
                                 const describerIndex = teamMembers.length > 0 ? completedTurnsCount % teamMembers.length : 0;
                                 const nextDescriberId = teamMembers[describerIndex]?.userId;
                                 const nextDescriberNickname = gameState.users?.find(u => u._id === nextDescriberId)?.nickname || "the describer";
-
                                 const isMyTurnToStart = userId === nextDescriberId;
                                 const isMyTeamToStart = myTeamId === nextTeamId;
 
-                                if (isMyTeamToStart) {
-                                    return (
-                                        <div className="space-y-4">
-                                            {isMyTurnToStart ? (
-                                                <p className="text-yellow-400 font-bold animate-pulse">It's YOUR turn to describe!</p>
-                                            ) : (
-                                                <p className="text-blue-400 font-bold animate-pulse">It's your team's turn! <span className="text-white">{nextDescriberNickname}</span> will be describing.</p>
-                                            )}
-                                            <button
-                                                onClick={handleStartTurn}
-                                                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center gap-2 mx-auto shadow-lg shadow-blue-500/30 transition-transform hover:scale-105 active:scale-95"
-                                            >
-                                                <Play size={24} /> Start Round
-                                            </button>
-                                        </div>
-                                    );
-                                }
-
-                                const nextTeamName = gameState.teams.find(t => t._id === nextTeamId)?.name;
                                 return (
-                                    <p className="text-gray-400">
-                                        Waiting for <span className="text-blue-400 font-bold">{nextDescriberNickname}</span> ({nextTeamName}) to start...
-                                    </p>
+                                    <div className="flex flex-col items-center gap-8">
+                                        <div className="space-y-2">
+                                            <h3 className="text-white/40 uppercase tracking-[0.4em] text-xs font-black">UP NEXT</h3>
+                                            <div className="text-2xl sm:text-4xl font-black">
+                                                {gameState.teams.find(t => t._id === nextTeamId)?.name}
+                                            </div>
+                                        </div>
+
+                                        {isMyTeamToStart ? (
+                                            <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] w-full backdrop-blur-xl shadow-2xl">
+                                                <div className="mb-8">
+                                                    {isMyTurnToStart ? (
+                                                        <div className="text-yellow-400 text-xl font-black italic tracking-tight">YOU ARE UP!</div>
+                                                    ) : (
+                                                        <div className="text-blue-400 text-lg font-bold">Your team is up!</div>
+                                                    )}
+                                                    <p className="text-white/60 mt-1">
+                                                        <span className="text-white font-bold">{nextDescriberNickname}</span> will be describing.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={handleStartTurn}
+                                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] active:scale-[0.98]"
+                                                >
+                                                    <Play size={24} fill="currentColor" /> START YOUR TURN
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-4 text-white/40">
+                                                <div className="w-8 h-8 border-2 border-dotted border-white/20 rounded-full animate-spin" />
+                                                <p className="text-sm font-bold tracking-widest uppercase">
+                                                    Waiting for <span className="text-white">{nextDescriberNickname}</span>...
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {latestTurn && latestTurn.words && (
+                                            <div className="pt-8 border-t border-white/5 w-full">
+                                                <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-4 font-black">Previous Results</p>
+                                                <div className="flex gap-2 flex-wrap justify-center">
+                                                    {latestTurn.words.map((w, i) => (
+                                                        <span key={i} className={clsx(
+                                                            "px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold transition-all",
+                                                            latestTurn.solvedWords.includes(w)
+                                                                ? "bg-green-500/10 text-green-400 line-through decoration-2"
+                                                                : "bg-white/5 text-white/30"
+                                                        )}>{w}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 );
                             })()}
-
-
-
-                            {latestTurn && latestTurn.words && (
-                                <div className="mt-8 text-sm text-gray-400">
-                                    <p className="mb-2">Last turn words:</p>
-                                    <div className="flex gap-2 flex-wrap justify-center">
-                                        {latestTurn.words.map((w, i) => (
-                                            <span key={i} className={clsx(
-                                                "px-2 py-1 rounded",
-                                                latestTurn.solvedWords.includes(w) ? "bg-green-900 text-green-300 line-through" : "bg-red-900 text-red-300"
-                                            )}>{w}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     )}
 
-                    {/* Case: Active Turn */}
+                    {/* Case: Active Turn - The Main Event */}
                     {currentTurn && (
-                        <div className="w-full text-center">
-                            {(() => {
-                                const describer = gameState.users?.find(u => u._id === currentTurn.describerId);
-                                const describerName = describer?.nickname || "Someone";
-
-                                return isMyTeamTurn ? (
-                                    isDescriber ? (
-                                        <div className="space-y-6">
-                                            <div className="bg-yellow-500/20 text-yellow-300 px-4 py-2 rounded-full inline-block font-bold mb-4">
-                                                YOU ({describerName}) ARE DESCRIBING
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {currentTurn.words.map((word, idx) => {
-                                                    const isSolved = currentTurn.solvedWords.includes(word);
-                                                    return (
-                                                        <button
-                                                            key={idx}
-                                                            disabled={isSolved || timeLeft === 0}
-                                                            onClick={() => handleManualSolve(word)}
-                                                            className={clsx(
-                                                                "p-4 rounded-xl text-xl font-bold border-2 transition-all flex items-center justify-between gap-2",
-                                                                isSolved
-                                                                    ? "bg-green-600/20 border-green-500 text-green-400 scale-95 opacity-50"
-                                                                    : "bg-white text-gray-900 border-white shadow-lg scale-100 hover:scale-105 active:scale-95"
-                                                            )}
-                                                        >
-                                                            <span>{word}</span>
-                                                            {isSolved && <CheckCircle2 className="text-green-500" />}
-                                                        </button>
-                                                    )
-                                                })}
-                                            </div>
-                                            {timeLeft === 0 ? (
-                                                <button
-                                                    onClick={handleEndTurn}
-                                                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center gap-2 mx-auto mt-8 animate-bounce"
-                                                >
-                                                    <Square size={24} /> End Turn
-                                                </button>
-                                            ) : (
-                                                <p className="text-sm text-gray-400 mt-4">Describe these words to your team without saying them!</p>
-                                            )}
-                                        </div>
+                        <div className="w-full flex flex-col items-center gap-8 sm:gap-12 max-w-3xl">
+                            {/* 2. Active Role Indicator - Centered and visible */}
+                            <div className="text-center">
+                                <div className={clsx(
+                                    "inline-flex items-center gap-3 px-6 py-2 rounded-full font-black text-sm uppercase tracking-[0.2em] shadow-xl",
+                                    isDescriber ? "bg-yellow-400 text-black" : "bg-blue-600 text-white"
+                                )}>
+                                    {isDescriber ? (
+                                        <><Send size={16} /> YOU ARE DESCRIBING</>
                                     ) : (
-                                        <div className="space-y-6 max-w-md mx-auto">
-                                            <div className="flex flex-col items-center gap-2 mb-4">
-                                                <div className="bg-blue-500/20 text-blue-300 px-4 py-2 rounded-full inline-block font-bold">
-                                                    GUESS THE WORDS!
-                                                </div>
-                                                <div className="text-sm text-gray-400">
-                                                    <span className="font-bold text-blue-400">{describerName}</span> is describing...
-                                                </div>
-                                            </div>
-                                            <form onSubmit={handleGuess} className="relative">
-                                                <input
-                                                    type="text"
-                                                    value={guessInput}
-                                                    onChange={(e) => setGuessInput(e.target.value)}
-                                                    placeholder="Type your guess here..."
-                                                    className="w-full bg-gray-700 border-2 border-blue-500 rounded-full py-4 px-6 pr-14 text-white placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:shadow-lg focus:shadow-blue-500/20 text-lg transition-all"
-                                                    autoFocus
-                                                />
+                                        <><Timer size={16} /> {isMyTeamTurn ? "GUESS THE WORDS!" : "OPPONENT PLAYING"}</>
+                                    )}
+                                </div>
+                                {!isDescriber && (
+                                    <div className="mt-3 text-white/50 text-sm font-medium">
+                                        <span className="text-white font-bold">
+                                            {gameState.users?.find(u => u._id === currentTurn.describerId)?.nickname}
+                                        </span> is describing
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 3. Main Gameplay Area - Centered and Balanced */}
+                            <div className="w-full">
+                                {isDescriber ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full">
+                                        {currentTurn.words.map((word, idx) => {
+                                            const isSolved = currentTurn.solvedWords.includes(word);
+                                            return (
                                                 <button
-                                                    type="submit"
-                                                    className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full transition-colors aspect-square flex items-center justify-center"
+                                                    key={idx}
+                                                    disabled={isSolved || timeLeft === 0}
+                                                    onClick={() => handleManualSolve(word)}
+                                                    className={clsx(
+                                                        "group relative p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2rem] text-2xl sm:text-3xl font-black transition-all duration-300 flex items-center justify-between gap-4 overflow-hidden",
+                                                        isSolved
+                                                            ? "bg-green-500/10 border-2 border-green-500/20 text-green-500/40 scale-[0.97]"
+                                                            : "bg-white text-slate-900 border-2 border-white shadow-[0_10px_30px_-5px_rgba(255,255,255,0.2)] hover:scale-[1.03] active:scale-[0.98]"
+                                                    )}
                                                 >
-                                                    <Send size={20} />
+                                                    <span className="z-10">{word}</span>
+                                                    {isSolved ? (
+                                                        <CheckCircle2 className="text-green-500 z-10" size={32} />
+                                                    ) : (
+                                                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                                            <CheckCircle2 size={24} />
+                                                        </div>
+                                                    )}
                                                 </button>
-                                            </form>
-                                            <div className="flex flex-wrap gap-2 justify-center mt-4">
-                                                {currentTurn.solvedWords.map((w, i) => (
-                                                    <span key={i} className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce">
-                                                        {w}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )
-                                ) : (
-                                    <div className="space-y-4">
-                                        <h2 className="text-2xl font-bold text-gray-300">
-                                            {gameState.teams?.find(t => t._id === currentTurn.teamId)?.name} is playing...
-                                        </h2>
-                                        <div className="text-lg text-blue-400 font-medium">
-                                            <span className="text-gray-400">Describer:</span> {describerName}
-                                        </div>
-                                        <div className="animate-spin text-gray-600 mx-auto w-fit">
-                                            <RotateCcw size={40} />
-                                        </div>
-                                        <div className="flex gap-2 justify-center mt-8">
-                                            {currentTurn.solvedWords.map((_, i) => (
-                                                <span key={i} className="bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-xs">
-                                                    Solved 1 word
-                                                </span>
+                                            )
+                                        })}
+                                    </div>
+                                ) : isMyTeamTurn ? (
+                                    <div className="flex flex-col items-center gap-8 w-full max-w-md mx-auto">
+                                        <form onSubmit={handleGuess} className="w-full relative group">
+                                            <input
+                                                type="text"
+                                                value={guessInput}
+                                                onChange={(e) => setGuessInput(e.target.value)}
+                                                placeholder="Enter guess..."
+                                                className="w-full bg-white/10 border-2 border-white/10 backdrop-blur-xl rounded-[2rem] py-5 px-8 pr-16 text-white placeholder-white/20 focus:outline-none focus:border-blue-500 focus:bg-white/15 text-xl sm:text-2xl font-bold transition-all shadow-2xl"
+                                                autoFocus
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="absolute right-3 top-3 bottom-3 bg-blue-600 hover:bg-blue-500 text-white px-5 rounded-[1.2rem] transition-all flex items-center justify-center shadow-lg active:scale-90"
+                                            >
+                                                <Send size={24} />
+                                            </button>
+                                        </form>
+
+                                        {/* Solved Words as small toast-like bubbles */}
+                                        <div className="flex flex-wrap gap-2 justify-center">
+                                            {currentTurn.solvedWords.map((w, i) => (
+                                                <div key={i} className="bg-green-500 text-white px-4 py-1.5 rounded-full text-sm font-black shadow-lg animate-in zoom-in slide-in-from-bottom-2 duration-300">
+                                                    {w}
+                                                </div>
                                             ))}
                                         </div>
                                     </div>
-                                );
-                            })()}
+                                ) : (
+                                    /* Opponent View - Spectating */
+                                    <div className="flex flex-col items-center gap-6 py-12 px-8 bg-white/5 border border-white/5 rounded-[3rem] backdrop-blur-sm shadow-inner italic">
+                                        <div className="relative">
+                                            <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full" />
+                                            <RotateCcw size={64} className="text-white/10 animate-spin-slow relative z-10" />
+                                        </div>
+                                        <div className="text-center space-y-2">
+                                            <p className="text-xl font-bold text-white/40">Watch closely...</p>
+                                            <div className="flex justify-center gap-1.5">
+                                                {Array.from({ length: currentTurn.solvedWords.length }).map((_, i) => (
+                                                    <div key={i} className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 4. Action Button - Clearly below and accessible */}
+                            {isDescriber && timeLeft === 0 && (
+                                <button
+                                    onClick={handleEndTurn}
+                                    className="w-full sm:w-auto min-w-[300px] bg-red-600 hover:bg-red-500 text-white px-10 py-6 rounded-3xl font-black text-2xl flex items-center justify-center gap-4 transition-all shadow-[0_15px_35px_-5px_rgba(220,38,38,0.5)] animate-in slide-in-from-bottom-10 active:scale-95 duration-500"
+                                >
+                                    <Square size={28} fill="currentColor" /> END YOUR TURN
+                                </button>
+                            )}
                         </div>
                     )}
-
-
                 </div>
             </main>
+
+            {/* Bottom Safe Area Spacer for Mobile */}
+            <footer className="h-6 sm:h-8 flex-shrink-0" />
+
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes spin-slow {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                .animate-spin-slow {
+                    animation: spin-slow 12s linear infinite;
+                }
+            `}} />
         </div>
     );
 };
