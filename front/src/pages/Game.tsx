@@ -207,11 +207,16 @@ export const Game: React.FC = () => {
                                 const nextDescriberNickname = gameState.users?.find(u => u._id === nextDescriberId)?.nickname || "the describer";
 
                                 const isMyTurnToStart = userId === nextDescriberId;
+                                const isMyTeamToStart = myTeamId === nextTeamId;
 
-                                if (isMyTurnToStart) {
+                                if (isMyTeamToStart) {
                                     return (
                                         <div className="space-y-4">
-                                            <p className="text-yellow-400 font-bold animate-pulse">It's YOUR turn to describe!</p>
+                                            {isMyTurnToStart ? (
+                                                <p className="text-yellow-400 font-bold animate-pulse">It's YOUR turn to describe!</p>
+                                            ) : (
+                                                <p className="text-blue-400 font-bold animate-pulse">It's your team's turn! <span className="text-white">{nextDescriberNickname}</span> will be describing.</p>
+                                            )}
                                             <button
                                                 onClick={handleStartTurn}
                                                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center gap-2 mx-auto shadow-lg shadow-blue-500/30 transition-transform hover:scale-105 active:scale-95"

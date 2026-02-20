@@ -58,7 +58,8 @@ export const startTurn = async (roundId: string, callerId: string) => {
     }
 
     // Ensure caller is from the correct team
-    const caller = await TeamPlayer.findOne({ userId: callerId });
+    const teamIdsInGame = teams.map(t => t._id);
+    const caller = await TeamPlayer.findOne({ userId: callerId, teamId: { $in: teamIdsInGame } });
     if (!caller || caller.teamId.toString() !== nextTeam._id.toString()) {
         throw new Error(`It is not your team's turn. It is ${nextTeam.name}'s turn.`);
     }
