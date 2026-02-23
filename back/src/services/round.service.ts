@@ -8,6 +8,7 @@ export const createRound = async (gameId: string, adminId: string) => {
     const game = await Game.findById(gameId);
     if (!game) throw new Error('Game not found');
     if (game.adminId.toString() !== adminId) throw new Error('Unauthorized');
+    if (game.status === 'FINISHED') throw new Error('Game is finished');
 
     // Get current round number
     const lastRound = await Round.findOne({ gameId }).sort({ roundNumber: -1 });
@@ -29,6 +30,10 @@ export const createRound = async (gameId: string, adminId: string) => {
 export const startTurn = async (roundId: string, callerId: string) => {
     const round = await Round.findById(roundId);
     if (!round) throw new Error('Round not found');
+
+    const game = await Game.findById(round.gameId);
+    if (!game) throw new Error('Game not found');
+    if (game.status === 'FINISHED') throw new Error('Game is already finished');
 
     // 1. Check for active turns in this round
     const activeTurn = await Turn.findOne({ roundId, status: 'ACTIVE' });
@@ -96,7 +101,20 @@ export const endTurn = async (turnId: string) => {
     const turn = await Turn.findById(turnId);
     if (!turn) throw new Error('Turn not found');
 
+    if (turn.status === 'COMPLETED') return turn;
+
     turn.status = 'COMPLETED';
     await turn.save();
+
+    // Check winning condition
+    const game = await Game.findById(turn.gameId);
+    if (!game) throw new Error('Game not found');
+
+    const team = await Team.findById(turn.teamId);
+    if (team && team.score >= game.winningScore) {
+        game.status = 'FINISHED';
+        await game.save();
+    }
+
     return turn;
 };

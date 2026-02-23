@@ -7,6 +7,10 @@ export const submitGuess = async (turnId: string, userId: string, input: string)
     if (!turn) throw new Error('Turn not found');
     if (turn.status !== 'ACTIVE') throw new Error('Turn is not active');
 
+    const Game = (await import('../models/Game.model')).default;
+    const game = await Game.findById(turn.gameId);
+    if (game && game.status === 'FINISHED') throw new Error('Game is finished');
+
     // Check if user is the describer? Usually describer describes, teammates guess.
     // Allow describer to submit if they use buttons to mark as correct.
     // Removed restriction to allow describer to mark words as solved.
@@ -36,8 +40,8 @@ export const submitGuess = async (turnId: string, userId: string, input: string)
 
         // Check if all words solved?
         if (turn.solvedWords.length === turn.words.length) {
-            turn.status = 'COMPLETED';
-            await turn.save();
+            const { endTurn } = await import('./round.service');
+            await endTurn(turnId);
         }
     }
 
