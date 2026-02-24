@@ -62,6 +62,8 @@ export const Game: React.FC = () => {
     const isFinished = gameState.status === GameStatus.FINISHED;
     const sortedTeams = gameState.teams ? [...gameState.teams].sort((a, b) => b.score - a.score) : [];
     const winner = sortedTeams[0];
+    const maxScore = sortedTeams.length > 0 ? sortedTeams[0].score : 0;
+    const isTieBreak = !isFinished && maxScore >= (gameState.winningScore || 20);
 
 
     // Assume generic flat list for now or we rely on backend populated data structure
@@ -123,10 +125,27 @@ export const Game: React.FC = () => {
             {/* Top Bar: Scoreboard - Thinner and more elegant */}
             <header className="relative z-10 bg-slate-900/50 backdrop-blur-md border-b border-white/5 p-3 sm:p-4">
                 <div className="max-w-6xl mx-auto flex justify-between items-center px-2">
-                    <div className="flex items-center gap-3">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] uppercase tracking-[0.2em] text-blue-400 font-black">Round</span>
-                            <h1 className="text-xl sm:text-2xl font-black italic tracking-tighter leading-none">{gameState.currentRound || 1}</h1>
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="flex flex-col">
+                                <span className={clsx(
+                                    "text-[10px] uppercase tracking-[0.2em] font-black transition-all duration-500",
+                                    isTieBreak ? "text-orange-500 animate-pulse" : "text-blue-400"
+                                )}>
+                                    {isTieBreak ? "Tie Breaker" : "Round"}
+                                </span>
+                                <h1 className="text-xl sm:text-2xl font-black italic tracking-tighter leading-none">{gameState.currentRound || 1}</h1>
+                            </div>
+                            <div className="h-8 w-[1px] bg-white/10" />
+                            <div className="flex flex-col">
+                                <span className={clsx(
+                                    "text-[10px] uppercase tracking-[0.2em] font-black transition-all duration-500",
+                                    isTieBreak ? "text-orange-500 animate-pulse" : "text-yellow-500"
+                                )}>
+                                    Target
+                                </span>
+                                <h1 className="text-xl sm:text-2xl font-black italic tracking-tighter leading-none">{gameState.winningScore || 20}</h1>
+                            </div>
                         </div>
                         {isAdmin && (
                             <button onClick={handleResetGame} className="p-2 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-all active:scale-95" title="Reset Game">
@@ -147,7 +166,12 @@ export const Game: React.FC = () => {
                                 )}
                             >
                                 <span className="font-extrabold text-[9px] sm:text-[10px] uppercase tracking-widest truncate max-w-[60px] sm:max-w-[100px] mb-0.5">{team.name}</span>
-                                <span className="text-lg sm:text-2xl font-black font-mono leading-none">{team.score}</span>
+                                <span className={clsx(
+                                    "text-lg sm:text-2xl font-black font-mono leading-none transition-colors duration-500",
+                                    team.score >= gameState.winningScore ? "text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]" : "text-white"
+                                )}>
+                                    {team.score}
+                                </span>
                             </div>
                         ))}
                     </div>

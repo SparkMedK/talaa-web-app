@@ -110,10 +110,39 @@ export const endTurn = async (turnId: string) => {
     const game = await Game.findById(turn.gameId);
     if (!game) throw new Error('Game not found');
 
-    const team = await Team.findById(turn.teamId);
-    if (team && team.score >= game.winningScore) {
-        game.status = 'FINISHED';
-        await game.save();
+    const teams = await Team.find({ gameId: turn.gameId }).sort({ order: 1 });
+    if (teams.length > 0) {
+        const lastTeam = teams[teams.length - 1];
+        const isLastTeamInRotation = lastTeam._id.toString() === turn.teamId.toString();
+
+        if (isLastTeamInRotation) {
+            const maxScore = Math.max(...teams.map(t => t.score));
+
+            if (maxScore >= game.winningScore) {
+                const winners = teams.filter(t => t.score === maxScore);
+
+                if (winners.length === 1) {
+                    // Absolute winner
+                    game.status = 'FINISHED';
+                    await game.save();
+                } else {
+                    // Tie Scenario: Automatically continue to a new round
+                    // Mark current round as completed for record keeping
+                    await Round.findByIdAndUpdate(turn.roundId, { status: 'COMPLETED' });
+
+                    const nextRoundNumber = (game.currentRound || 1) + 1;
+                    const newRound = new Round({
+                        gameId: turn.gameId,
+                        roundNumber: nextRoundNumber,
+                        status: 'ACTIVE'
+                    });
+                    await newRound.save();
+
+                    game.currentRound = nextRoundNumber;
+                    await game.save();
+                }
+            }
+        }
     }
 
     return turn;
