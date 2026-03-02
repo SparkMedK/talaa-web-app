@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
-import { createRound, startTurn, submitGuess, restartGame, endTurn } from '../api/endpoints';
+import { createRound, startTurn, submitGuess, restartGame, endTurn, kickPlayer } from '../api/endpoints';
 import { UserRole, RoundStatus, TurnStatus, GameStatus } from '../types';
-import { Timer, Send, Play, RotateCcw, CheckCircle2, Square } from 'lucide-react';
+import { Timer, Send, Play, RotateCcw, CheckCircle2, Square, UserMinus } from 'lucide-react';
 
 import clsx from 'clsx';
 
@@ -22,6 +22,13 @@ export const Game: React.FC = () => {
         const interval = setInterval(() => fetchGame(gameId), 1000); // 1s polling for game loop
         return () => clearInterval(interval);
     }, [gameId, fetchGame]);
+
+    // Redirect if kicked
+    useEffect(() => {
+        if (gameState && userId && !gameState.users?.some(u => u._id === userId)) {
+            navigate('/');
+        }
+    }, [gameState, userId, navigate]);
 
     // Redirect to lobby if game is reset
     useEffect(() => {
@@ -113,6 +120,18 @@ export const Game: React.FC = () => {
             try { await restartGame(gameId); } catch (e) { console.error(e); }
         }
     }
+
+    const handleKickDescriber = async (describerId: string) => {
+        if (!gameId) return;
+        if (confirm('Kick the upcoming describer from the game? Their team may be dissolved if it falls below 2 players.')) {
+            try {
+                await kickPlayer(gameId, describerId);
+                await fetchGame(gameId);
+            } catch (e: any) {
+                alert(e?.response?.data?.message || 'Failed to kick player.');
+            }
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#0f172a] text-white flex flex-col font-sans overflow-hidden">
@@ -328,6 +347,21 @@ export const Game: React.FC = () => {
                                                     <div className="text-2xl sm:text-4xl font-black">
                                                         {gameState.teams.find(t => t._id === nextTeamId)?.name}
                                                     </div>
+                                                    {/* Admin: Kick the upcoming describer before their turn starts */}
+                                                    {isAdmin && nextDescriberId && nextDescriberId !== userId && (
+                                                        <div className="flex items-center justify-center gap-2 mt-3">
+                                                            <span className="text-xs text-white/30 font-bold uppercase tracking-widest">Describer:</span>
+                                                            <span className="text-sm font-bold text-white/70">{nextDescriberNickname}</span>
+                                                            <button
+                                                                onClick={() => handleKickDescriber(nextDescriberId)}
+                                                                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-red-500/10 hover:bg-red-500/25 text-red-400 text-xs font-black uppercase tracking-wider transition-all active:scale-95 border border-red-500/20"
+                                                                title={`Kick ${nextDescriberNickname} from the game`}
+                                                            >
+                                                                <UserMinus size={13} />
+                                                                Kick
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {isMyTeamToStart ? (

@@ -148,6 +148,44 @@ export const kickPlayer = async (gameId: string, adminId: string, playerId: stri
     const game = await Game.findById(gameId);
     if (!game) throw new Error('Game not found');
     if (game.adminId.toString() !== adminId) throw new Error('Unauthorized');
+    if (game.status === 'FINISHED') throw new Error('Game is already finished');
 
-    return await User.findByIdAndDelete(playerId);
+    // Block kick while a turn is actively running
+    const activeTurn = await Turn.findOne({ gameId, status: 'ACTIVE' });
+    if (activeTurn) {
+        throw new Error('Cannot kick a player while a turn is in progress. Wait for the turn to end.');
+    }
+
+    // Find the player's team assignment in this game
+    const teamPlayer = await TeamPlayer.findOne({ userId: playerId });
+    const teamId = teamPlayer?.teamId;
+
+    // Remove player from TeamPlayer
+    if (teamPlayer) {
+        await TeamPlayer.findByIdAndDelete(teamPlayer._id);
+    }
+
+    // Delete the user record
+    await User.findByIdAndDelete(playerId);
+
+    if (teamId) {
+        const remainingTeamMembers = await TeamPlayer.find({ teamId });
+
+        if (remainingTeamMembers.length < 2) {
+            // Team must have at least 2 players to be valid — delete it
+            await Team.findByIdAndDelete(teamId);
+
+            // End the game if only 1 (or 0) team remains
+            const remainingTeams = await Team.find({ gameId });
+            if (remainingTeams.length < 2 && game.status === 'PLAYING') {
+                game.status = 'FINISHED';
+                await game.save();
+            }
+        }
+    }
+
+    return {
+        message: 'Player kicked successfully',
+        gameStatus: game.status
+    };
 };

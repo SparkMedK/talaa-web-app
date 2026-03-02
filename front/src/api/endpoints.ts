@@ -59,3 +59,7 @@ export const endTurn = async (turnId: string) => {
     return apiClient.post(`/turns/${turnId}/end`);
 };
 
+export const kickPlayer = async (gameId: string, playerId: string) => {
+    return apiClient.post<{ message: string; gameStatus: string }>(`/games/${gameId}/kick`, { playerId });
+};
+

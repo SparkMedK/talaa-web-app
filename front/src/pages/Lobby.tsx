@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
-import { createTeam, assignPlayerToTeam, removePlayerFromTeam, startGame } from '../api/endpoints';
+import { createTeam, assignPlayerToTeam, removePlayerFromTeam, startGame, kickPlayer } from '../api/endpoints';
 import { UserRole, GameStatus } from '../types';
-import { Users, Crown, Play, Plus, X } from 'lucide-react';
+import { Users, Crown, Play, Plus, X, UserMinus } from 'lucide-react';
 import clsx from 'clsx';
 
 
@@ -88,6 +88,17 @@ export const Lobby: React.FC = () => {
         if (!gameId) return;
         try {
             await startGame(gameId);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleKick = async (playerId: string) => {
+        if (!gameId) return;
+        if (!window.confirm('Are you sure you want to kick this player?')) return;
+        try {
+            await kickPlayer(gameId, playerId);
+            await fetchGame(gameId);
         } catch (err) {
             console.error(err);
         }
@@ -182,17 +193,30 @@ export const Lobby: React.FC = () => {
                                         </span>
                                     </div>
 
-                                    {isAdmin && gameState.teams && gameState.teams.length > 0 && (
-                                        <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
-                                            {gameState.teams.map(team => (
+                                    {isAdmin && (
+                                        <div className="opacity-0 group-hover:opacity-100 flex gap-2 transition-opacity">
+                                            {gameState.teams && gameState.teams.length > 0 && (
+                                                <div className="flex gap-1">
+                                                    {gameState.teams.map(team => (
+                                                        <button
+                                                            key={team._id}
+                                                            onClick={() => handleAssign(team._id, user._id)}
+                                                            className="text-[10px] font-black bg-blue-600 hover:bg-blue-500 px-2 py-1.5 rounded-lg transition-colors uppercase"
+                                                        >
+                                                            {team.name.substring(0, 2)}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {user._id !== userId && (
                                                 <button
-                                                    key={team._id}
-                                                    onClick={() => handleAssign(team._id, user._id)}
-                                                    className="text-[10px] font-black bg-blue-600 hover:bg-blue-500 px-2 py-1.5 rounded-lg transition-colors uppercase"
+                                                    onClick={() => handleKick(user._id)}
+                                                    className="p-1.5 hover:bg-red-500/20 rounded-xl text-red-400 transition-colors"
+                                                    title="Kick from game"
                                                 >
-                                                    {team.name.substring(0, 2)}
+                                                    <UserMinus size={16} />
                                                 </button>
-                                            ))}
+                                            )}
                                         </div>
                                     )}
                                 </div>
