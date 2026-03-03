@@ -71,3 +71,14 @@ export const kickPlayer = async (req: AuthRequest, res: Response) => {
         res.status(400).json({ message: (error as Error).message });
     }
 };
+
+export const deleteTeam = async (req: AuthRequest, res: Response) => {
+    try {
+        const adminId = req.user._id.toString();
+        const { teamId } = req.body;
+        const result = await gameService.deleteTeam(req.params.gameId as string, adminId, teamId);
+        res.json(result);
+    } catch (error) {
+        res.status(400).json({ message: (error as Error).message });
+    }
+};

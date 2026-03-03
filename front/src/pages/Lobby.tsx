@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
-import { createTeam, assignPlayerToTeam, removePlayerFromTeam, startGame, kickPlayer } from '../api/endpoints';
+import { createTeam, assignPlayerToTeam, removePlayerFromTeam, startGame, kickPlayer, deleteTeam } from '../api/endpoints';
 import { UserRole, GameStatus } from '../types';
-import { Users, Crown, Play, Plus, X, UserMinus } from 'lucide-react';
+import { Users, Crown, Play, Plus, X, UserMinus, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 
 
@@ -101,6 +101,18 @@ export const Lobby: React.FC = () => {
             await fetchGame(gameId);
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    const handleDeleteTeam = async (teamId: string) => {
+        if (!gameId) return;
+        if (!window.confirm('Are you SURE you want to delete this ENTIRE team? All players in this team will be moved back to the waiting area.')) return;
+        try {
+            await deleteTeam(gameId, teamId);
+            await fetchGame(gameId);
+        } catch (err) {
+            console.error(err);
+            alert((err as any)?.response?.data?.message || 'Failed to delete team.');
         }
     };
 
@@ -264,9 +276,20 @@ export const Lobby: React.FC = () => {
                                                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400">Team</span>
                                                 <h3 className="text-2xl sm:text-3xl font-black italic tracking-tighter text-white uppercase">{team.name}</h3>
                                             </div>
-                                            <div className="bg-white/5 px-4 py-2 rounded-2xl border border-white/5 flex flex-col items-center">
-                                                <span className="text-[8px] font-black text-white/40 uppercase leading-none mb-1">Score</span>
-                                                <span className="text-xl font-black font-mono leading-none">{team.score}</span>
+                                            <div className="flex items-start gap-2">
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => handleDeleteTeam(team._id)}
+                                                        className="p-2 hover:bg-red-500/20 rounded-xl text-red-400 transition-colors border border-transparent hover:border-red-500/10"
+                                                        title="Delete entire team"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                                <div className="bg-white/5 px-4 py-2 rounded-2xl border border-white/5 flex flex-col items-center">
+                                                    <span className="text-[8px] font-black text-white/40 uppercase leading-none mb-1">Score</span>
+                                                    <span className="text-xl font-black font-mono leading-none">{team.score}</span>
+                                                </div>
                                             </div>
                                         </div>
 

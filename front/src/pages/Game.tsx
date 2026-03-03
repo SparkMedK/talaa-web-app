@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
-import { createRound, startTurn, submitGuess, restartGame, endTurn, kickPlayer } from '../api/endpoints';
+import { createRound, startTurn, submitGuess, restartGame, endTurn, kickPlayer, deleteTeam } from '../api/endpoints';
 import { UserRole, RoundStatus, TurnStatus, GameStatus } from '../types';
-import { Timer, Send, Play, RotateCcw, CheckCircle2, Square, UserMinus } from 'lucide-react';
+import { Timer, Send, Play, RotateCcw, CheckCircle2, Square, UserMinus, Trash2 } from 'lucide-react';
 
 import clsx from 'clsx';
 
@@ -133,6 +133,8 @@ export const Game: React.FC = () => {
         }
     };
 
+
+
     return (
         <div className="min-h-screen bg-[#0f172a] text-white flex flex-col font-sans overflow-hidden">
             {/* Ambient Background Glow */}
@@ -178,7 +180,7 @@ export const Game: React.FC = () => {
                             <div
                                 key={team._id}
                                 className={clsx(
-                                    "px-3 py-1.5 sm:px-5 sm:py-2 rounded-2xl border transition-all duration-500 flex flex-col items-center min-w-[70px] sm:min-w-[100px]",
+                                    "relative group px-3 py-1.5 sm:px-5 sm:py-2 rounded-2xl border transition-all duration-500 flex flex-col items-center min-w-[70px] sm:min-w-[100px]",
                                     currentTurn?.teamId === team._id
                                         ? "bg-blue-500/20 border-blue-400/50 shadow-[0_0_20px_rgba(59,130,246,0.2)] scale-105"
                                         : "bg-white/5 border-white/5 opacity-60"

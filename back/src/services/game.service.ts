@@ -189,3 +189,41 @@ export const kickPlayer = async (gameId: string, adminId: string, playerId: stri
         gameStatus: game.status
     };
 };
+
+export const deleteTeam = async (gameId: string, adminId: string, teamId: string) => {
+    const game = await Game.findById(gameId);
+    if (!game) throw new Error('Game not found');
+    if (game.adminId.toString() !== adminId) throw new Error('Unauthorized');
+    if (game.status === 'FINISHED') throw new Error('Game is already finished');
+
+    // Block delete while a turn is actively running
+    const activeTurn = await Turn.findOne({ gameId, status: 'ACTIVE' });
+    if (activeTurn) {
+        throw new Error('Cannot delete a team while a turn is in progress. Wait for the turn to end.');
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) throw new Error('Team not found');
+
+    // Find all players in this team
+    const teamPlayers = await TeamPlayer.find({ teamId });
+    const playerIds = teamPlayers.map(tp => tp.userId);
+
+    // Delete TeamPlayer records to unassign players (moving them to waiting area)
+    await TeamPlayer.deleteMany({ teamId });
+
+    // Delete the Team
+    await Team.findByIdAndDelete(teamId);
+
+    // End the game if only 1 (or 0) team remains
+    const remainingTeams = await Team.find({ gameId });
+    if (remainingTeams.length < 2 && game.status === 'PLAYING') {
+        game.status = 'FINISHED';
+        await game.save();
+    }
+
+    return {
+        message: 'Team deleted successfully',
+        gameStatus: game.status
+    };
+};

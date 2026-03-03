@@ -13,5 +13,6 @@ router.post('/:gameId/restart', authenticate, gameController.restartGame);
 router.post('/:gameId/join', gameController.joinGame);
 router.post('/:gameId/leave', authenticate, gameController.leaveGame);
 router.post('/:gameId/kick', authenticate, gameController.kickPlayer);
+router.post('/:gameId/delete-team', authenticate, gameController.deleteTeam);
 
 export default router;

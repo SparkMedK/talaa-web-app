@@ -63,3 +63,7 @@ export const kickPlayer = async (gameId: string, playerId: string) => {
     return apiClient.post<{ message: string; gameStatus: string }>(`/games/${gameId}/kick`, { playerId });
 };
 
+export const deleteTeam = async (gameId: string, teamId: string) => {
+    return apiClient.post<{ message: string; gameStatus: string }>(`/games/${gameId}/delete-team`, { teamId });
+};
+
