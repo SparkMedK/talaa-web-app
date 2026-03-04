@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
-import { createRound, startTurn, submitGuess, restartGame, endTurn, kickPlayer, deleteTeam } from '../api/endpoints';
+import { createRound, startTurn, submitGuess, restartGame, endTurn, kickPlayer } from '../api/endpoints';
 import { UserRole, RoundStatus, TurnStatus, GameStatus } from '../types';
-import { Timer, Send, Play, RotateCcw, CheckCircle2, Square, UserMinus, Trash2 } from 'lucide-react';
+import { Timer, Send, Play, RotateCcw, CheckCircle2, Square, UserMinus } from 'lucide-react';
 
 import clsx from 'clsx';
 
@@ -296,15 +296,23 @@ export const Game: React.FC = () => {
                             {!currentRound && (gameState.currentRound === 0 || gameState.rounds?.every(r => r.status === RoundStatus.COMPLETED)) && (
                                 <div className="text-center animate-in fade-in zoom-in duration-500">
                                     <h2 className="text-3xl sm:text-5xl font-black mb-8 bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent italic">
-                                        Ready for the next one?
+                                        Ready for the next round?
                                     </h2>
                                     {isAdmin ? (
-                                        <button
-                                            onClick={handleCreateRound}
-                                            className="group relative bg-white text-black hover:bg-blue-400 hover:text-white px-10 py-5 rounded-2xl font-black text-xl flex items-center gap-3 mx-auto transition-all shadow-2xl hover:shadow-blue-500/40 active:scale-95"
-                                        >
-                                            <Play size={28} fill="currentColor" /> START NEW ROUND
-                                        </button>
+                                        <div className="flex flex-col items-center gap-4">
+                                            <button
+                                                onClick={handleCreateRound}
+                                                className="group relative bg-white text-black hover:bg-blue-400 hover:text-white px-10 py-5 rounded-2xl font-black text-xl flex items-center gap-3 mx-auto transition-all shadow-2xl hover:shadow-blue-500/40 active:scale-95"
+                                            >
+                                                <Play size={28} fill="currentColor" /> START NEW ROUND
+                                            </button>
+                                            <button
+                                                onClick={handleResetGame}
+                                                className="flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm font-black uppercase tracking-[0.2em]"
+                                            >
+                                                <RotateCcw size={16} /> Back to Waiting Area
+                                            </button>
+                                        </div>
                                     ) : (
                                         <div className="flex flex-col items-center gap-4">
                                             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
