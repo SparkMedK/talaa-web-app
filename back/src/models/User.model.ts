@@ -15,6 +15,7 @@ const UserSchema: Schema = new Schema({
     isConnected: { type: Boolean, default: true }
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
+UserSchema.index({ gameId: 1, nickname: 1 }, { unique: true });
 UserSchema.index({ gameId: 1 });
 
 export default mongoose.model<IUser>('User', UserSchema);

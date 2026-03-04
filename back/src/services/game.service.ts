@@ -125,6 +125,16 @@ export const joinGame = async (gameIdOrCode: string, nickname: string) => {
 
     if (!game) throw new Error('Game not found');
 
+    // Validation: Nickname must be unique within this game
+    const existingUser = await User.findOne({
+        gameId: game._id,
+        nickname: { $regex: new RegExp(`^${nickname}$`, 'i') }
+    });
+
+    if (existingUser) {
+        throw new Error('This nickname is already taken in this game.');
+    }
+
     const user = new User({
         nickname,
         role: 'PLAYER',
