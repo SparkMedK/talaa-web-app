@@ -14,6 +14,6 @@ const TeamSchema: Schema = new Schema({
     order: { type: Number, required: true }
 });
 
-TeamSchema.index({ gameId: 1 });
+TeamSchema.index({ gameId: 1, name: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
 
 export default mongoose.model<ITeam>('Team', TeamSchema);

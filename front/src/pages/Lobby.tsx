@@ -12,6 +12,7 @@ export const Lobby: React.FC = () => {
     const navigate = useNavigate();
     const { gameState, userId, fetchGame } = useGameStore();
     const [newTeamName, setNewTeamName] = useState('');
+    const [teamError, setTeamError] = useState<string | null>(null);
 
     // Polling
     useEffect(() => {
@@ -50,14 +51,30 @@ export const Lobby: React.FC = () => {
 
     const handleCreateTeam = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!gameId || !newTeamName) return;
+        const trimmedName = newTeamName.trim();
+        if (!gameId || !trimmedName) return;
+
+        setTeamError(null);
+
+        // Client-side validation for duplicate names
+        const isDuplicate = gameState.teams?.some(
+            team => team.name.toLowerCase() === trimmedName.toLowerCase()
+        );
+
+        if (isDuplicate) {
+            setTeamError('Team name already exists. Please choose another name.');
+            return;
+        }
+
         try {
-            await createTeam(gameId, newTeamName);
+            await createTeam(gameId, trimmedName);
             setNewTeamName('');
             // Immediately refresh game state to show the new team
             await fetchGame(gameId);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            const errorMessage = err.response?.data?.message || 'Failed to create team';
+            setTeamError(errorMessage);
         }
     };
 
@@ -246,18 +263,28 @@ export const Lobby: React.FC = () => {
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-white/40">The Squads</h2>
                             {isAdmin && (
-                                <form onSubmit={handleCreateTeam} className="w-full sm:w-auto flex bg-white/5 rounded-2xl p-1 border border-white/5 focus-within:border-blue-500/50 transition-all">
-                                    <input
-                                        type="text"
-                                        value={newTeamName}
-                                        onChange={(e) => setNewTeamName(e.target.value)}
-                                        placeholder="Add Team..."
-                                        className="bg-transparent border-none px-4 py-2 outline-none text-sm font-bold placeholder-white/20 flex-1 sm:w-48"
-                                    />
-                                    <button type="submit" className="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
-                                        <Plus size={18} />
-                                    </button>
-                                </form>
+                                <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+                                    <form onSubmit={handleCreateTeam} className="w-full sm:w-auto flex bg-white/5 rounded-2xl p-1 border border-white/5 focus-within:border-blue-500/50 transition-all">
+                                        <input
+                                            type="text"
+                                            value={newTeamName}
+                                            onChange={(e) => {
+                                                setNewTeamName(e.target.value);
+                                                if (teamError) setTeamError(null);
+                                            }}
+                                            placeholder="Add Team..."
+                                            className="bg-transparent border-none px-4 py-2 outline-none text-sm font-bold placeholder-white/20 flex-1 sm:w-48"
+                                        />
+                                        <button type="submit" className="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
+                                            <Plus size={18} />
+                                        </button>
+                                    </form>
+                                    {teamError && (
+                                        <span className="text-red-400 text-[10px] sm:text-xs font-black uppercase tracking-wider animate-in fade-in slide-in-from-top-1 duration-200">
+                                            {teamError}
+                                        </span>
+                                    )}
+                                </div>
                             )}
                         </div>
 

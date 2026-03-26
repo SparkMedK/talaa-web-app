@@ -8,12 +8,29 @@ export const createTeams = async (gameId: string, adminId: string, names: string
     if (!game) throw new Error('Game not found');
     if (game.adminId.toString() !== adminId) throw new Error('Unauthorized');
 
+    // Check for duplicates in the input names array (case-insensitive)
+    const normalizedInputNames = names.map(n => n.trim().toLowerCase());
+    const uniqueInputNames = new Set(normalizedInputNames);
+    if (uniqueInputNames.size !== names.length) {
+        throw new Error('Duplicate team names in input');
+    }
+
+    // Check against existing teams in the game
+    const existingTeams = await Team.find({ gameId });
+    const existingNames = existingTeams.map(t => t.name.toLowerCase());
+    const duplicates = names.filter(n => existingNames.includes(n.trim().toLowerCase()));
+    if (duplicates.length > 0) {
+        throw new Error('Team name already exists. Please choose another name.');
+    }
+
     const teams = [];
     for (let i = 0; i < names.length; i++) {
+        // Calculate correct order: current count + i
+        const order = existingTeams.length + i;
         const team = new Team({
             gameId,
-            name: names[i],
-            order: i
+            name: names[i].trim(),
+            order: order
         });
         await team.save();
         teams.push(team);
